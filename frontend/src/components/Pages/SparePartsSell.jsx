@@ -183,7 +183,7 @@ const SparePartsSell = () => {
             <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                     <Title level={3} className="flex items-center m-0">
-                        <ShoppingCartOutlined className="ml-2" /> د پور مدیریت
+                        <ShoppingCartOutlined className="ml-2" />  پرزو خرڅول مدیریت 
                     </Title>
                     <Button
                         type="primary"

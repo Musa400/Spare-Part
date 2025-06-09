@@ -36,7 +36,7 @@ const Adminlayout = ({ children }) => {
         {
             key: '/Spare Part Sale',
             icon: <MoneyCollectFilled />,
-            label: <Link to='/sale'>Spare Part Sale </Link>,
+            label: <Link to='/sale'>پرزو خرڅول مدیریت</Link>,
         },
         {
             key: '/report',
