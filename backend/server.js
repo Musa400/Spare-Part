@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 
 const sparePartsRoutes = require('./routes/sparePartsRoutes');
 const saleRoutes = require('./routes/saleRoutes');
+const purchaseRoutes = require('./routes/purchaseRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,6 +26,7 @@ mongoose.connect(process.env.MongoUrl, {
 // Routes
 app.use('/api/spareparts', sparePartsRoutes);
 app.use('/api/sales', saleRoutes);
+app.use('/api/purchases', purchaseRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

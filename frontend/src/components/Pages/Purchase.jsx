@@ -11,8 +11,16 @@ import {
   Space,
   Popconfirm,
   message,
+  Spin,
+  Card,
+  Row,
+  Col,
+  Statistic
 } from 'antd';
 import Adminlayout from '../layout/Sidebar';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import { PlusOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -23,31 +31,80 @@ function PurchaseRegister() {
   const [suppliers, setSuppliers] = useState([]);
   const [spareParts, setSpareParts] = useState([]);
   const [editingPurchase, setEditingPurchase] = useState(null);
-  const [messageApi, contextHolder] = message.useMessage();
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
+  // Fetch data on component mount
   useEffect(() => {
-    setSuppliers([
-      { _id: 's1', name: 'عرضه کوونکی ۱' },
-      { _id: 's2', name: 'عرضه کوونکی ۲' },
-    ]);
-    setSpareParts([
-      { _id: 'p1', name: 'پرزه ۱' },
-      { _id: 'p2', name: 'پرزه ۲' },
-    ]);
-    setPurchases([]);
-  }, []);
+    fetchPurchases();
+    fetchSuppliers();
+    fetchSpareParts();
+  }, [pagination.current]);
+
+  const fetchPurchases = async () => {
+    try {
+      setLoading(true);
+      const { current, pageSize } = pagination;
+      const response = await axios.get('http://localhost:5000/api/purchases', {
+        params: {
+          page: current,
+          limit: pageSize,
+        },
+      });
+      
+      setPurchases(response.data.purchases);
+      setPagination({
+        ...pagination,
+        total: response.data.totalPurchases,
+      });
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      message.error('د اخستنو ترلاسه کولو کې ستونزه راغله');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      // In a real app, you would fetch this from your API
+      setSuppliers([
+        { _id: 's1', name: 'عرضه کوونکی ۱' },
+        { _id: 's2', name: 'عرضه کوونکی ۲' },
+      ]);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      message.error('د عرضه کوونکو ترلاسه کولو کې ستونزه راغله');
+    }
+  };
+
+  const fetchSpareParts = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/spareparts');
+      setSpareParts(response.data);
+    } catch (error) {
+      console.error('Error fetching spare parts:', error);
+      message.error('د پرزو ترلاسه کولو کې ستونزه راغله');
+    }
+  };
 
   const showModal = (purchase = null) => {
     setEditingPurchase(purchase);
     if (purchase) {
       form.setFieldsValue({
-        supplierId: purchase.supplier._id,
-        sparePartId: purchase.sparePart._id,
-        quantity: purchase.quantity,
-        price: purchase.price,
-        purchaseDate: purchase.purchaseDate,
+        supplier: purchase.supplier,
+        items: purchase.items.map(item => ({
+          sparePart: item.sparePart._id,
+          quantity: item.quantity,
+          price: item.price,
+        })),
         description: purchase.description,
         companyName: purchase.companyName,
+        purchaseDate: dayjs(purchase.purchaseDate),
       });
     } else {
       form.resetFields();
@@ -61,46 +118,63 @@ function PurchaseRegister() {
     setEditingPurchase(null);
   };
 
-  const handleFinish = (values) => {
-    const newPurchase = {
-      _id: editingPurchase ? editingPurchase._id : Date.now().toString(),
-      supplier: suppliers.find((s) => s._id === values.supplierId),
-      sparePart: spareParts.find((p) => p._id === values.sparePartId),
-      quantity: values.quantity,
-      price: values.price,
-      purchaseDate: values.purchaseDate.format('YYYY-MM-DD'),
-      description: values.description || '',
-      companyName: values.companyName,
-    };
-
-    let updatedPurchases;
-    if (editingPurchase) {
-      updatedPurchases = purchases.map((p) =>
-        p._id === editingPurchase._id ? newPurchase : p
-      );
-      messageApi.success('معلومات تازه شول');
-    } else {
-      updatedPurchases = [...purchases, newPurchase];
-      messageApi.success('اخستنه ثبت شو');
-    }
-    setPurchases(updatedPurchases);
-    handleCancel();
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
   };
 
-  const handleDelete = (id) => {
-    setPurchases(purchases.filter((p) => p._id !== id));
-    messageApi.success('حذف شو');
+  const handleFinish = async (values) => {
+    try {
+      setLoading(true);
+      const purchaseData = {
+        ...values,
+        purchaseDate: values.purchaseDate.format('YYYY-MM-DD'),
+        items: values.items || [],
+      };
+
+      if (editingPurchase) {
+        await axios.put(
+          `http://localhost:5000/api/purchases/${editingPurchase._id}`,
+          purchaseData
+        );
+        message.success('اخستنه په بریالیتوب سره تازه سول!');
+      } else {
+        await axios.post('http://localhost:5000/api/purchases', purchaseData);
+        message.success('نوې اخستنه په بریالیتوب سره ثبت سول!');
+      }
+
+      fetchPurchases();
+      handleCancel();
+    } catch (error) {
+      console.error('Error saving purchase:', error);
+      message.error('د خوندي کولو پر وخت ستونزه راغله');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      setLoading(true);
+      await axios.delete(`http://localhost:5000/api/purchases/${id}`);
+      message.success('اخستنه په بریالیتوب سره ړنګه سول!');
+      fetchPurchases();
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+      message.error('د ړنګولو پر وخت ستونزه راغله');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const columns = [
     {
       title: 'عرضه کوونکی',
-      dataIndex: ['supplier', 'name'],
+      dataIndex: ['supplier'],
       key: 'supplier',
     },
     {
       title: 'پرزه',
-      dataIndex: ['sparePart', 'name'],
+      dataIndex: ['items', '0', 'sparePart', 'name'],
       key: 'sparePart',
     },
     {
@@ -110,18 +184,31 @@ function PurchaseRegister() {
     },
     {
       title: 'مقدار',
-      dataIndex: 'quantity',
+      dataIndex: ['items', '0', 'quantity'],
       key: 'quantity',
     },
     {
-      title: 'قیمت',
-      dataIndex: 'price',
+      title: 'فی قیمت',
+      dataIndex: ['items', '0', 'price'],
       key: 'price',
+      render: (price) => `${price?.toLocaleString()} AFN`,
+    },
+    {
+      title: 'مجموعه',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      render: (total) => `${total?.toLocaleString()} AFN`,
     },
     {
       title: 'نیټه',
       dataIndex: 'purchaseDate',
       key: 'purchaseDate',
+      render: (date) => dayjs(date).format('YYYY-MM-DD'),
+    },
+    {
+      title: 'تفصیل',
+      dataIndex: 'description',
+      key: 'description',
     },
     {
       title: 'عملیات',
@@ -132,8 +219,10 @@ function PurchaseRegister() {
             سمول
           </Button>
           <Popconfirm
-            title="ډاډه یی؟"
+            title="آیا تاسو ډاډه یاست؟"
             onConfirm={() => handleDelete(record._id)}
+            okText="هو"
+            cancelText="نه"
           >
             <Button type="link" danger>
               حذف
@@ -146,90 +235,162 @@ function PurchaseRegister() {
 
   return (
     <Adminlayout>
-      {contextHolder}
       <div dir="rtl" style={{ padding: 24 }}>
-        <h2 style={{ marginBottom: 16 }}>د اخستنه ثبت</h2>
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={8}>
+            <Card>
+              <Statistic
+                title="مجموعه اخستنې"
+                value={pagination.total}
+                prefix={<ShoppingCartOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-        <Button type="primary" onClick={() => showModal()} style={{ marginBottom: 16 }}>
-          نوی اخستنه
+        <Button 
+          type="primary" 
+          onClick={() => showModal()} 
+          style={{ marginBottom: 16 }}
+          icon={<PlusOutlined />}
+        >
+          نویه اخستنه
         </Button>
 
         <Table
           columns={columns}
           dataSource={purchases}
-          pagination={{ pageSize: 5 }}
           rowKey="_id"
+          loading={loading}
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            showTotal: (total) => `مجموعه ${total} اخستنې`,
+          }}
+          onChange={handleTableChange}
         />
 
         <Modal
-          title={editingPurchase ? 'د اخستنه سمول' : 'نوی اخستنه'}
+          title={editingPurchase ? 'د اخستنې سمول' : 'نوې اخستنې ثبتول'}
           open={visible}
           onCancel={handleCancel}
           footer={null}
-          destroyOnHidden
-          centered
+          width={800}
         >
           <Form
             form={form}
             layout="vertical"
             onFinish={handleFinish}
-            autoComplete="off"
+            initialValues={{
+              items: [{}],
+              purchaseDate: dayjs(),
+            }}
           >
+            <Form.List name="items">
+              {(fields, { add, remove }) => (
+                <>
+                  {fields.map(({ key, name, ...restField }) => (
+                    <div key={key} style={{ marginBottom: 16, border: '1px solid #f0f0f0', padding: 16, borderRadius: 4 }}>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'sparePart']}
+                            label="پرزه"
+                            rules={[{ required: true, message: 'لطفاً یوه پرزه وټاکئ' }]}
+                          >
+                            <Select placeholder="د پرزې نوم وټاکئ" showSearch optionFilterProp="children">
+                              {spareParts.map(part => (
+                                <Option key={part._id} value={part._id}>
+                                  {part.name}
+                                </Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'quantity']}
+                            label="مقدار"
+                            rules={[{ required: true, message: 'لطفاً مقدار ولیکئ' }]}
+                          >
+                            <InputNumber min={1} style={{ width: '100%' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'price']}
+                            label="فی قیمت"
+                            rules={[{ required: true, message: 'لطفاً قیمت ولیکئ' }]}
+                          >
+                            <InputNumber min={0} style={{ width: '100%' }} />
+                          </Form.Item>
+                        </Col>
+                        {fields.length > 1 && (
+                          <Col span={2} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                            <Button
+                              type="text"
+                              danger
+                              onClick={() => remove(name)}
+                              style={{ marginBottom: 24 }}
+                            >
+                              حذف
+                            </Button>
+                          </Col>
+                        )}
+                      </Row>
+                    </div>
+                  ))}
+                  <Form.Item>
+                    <Button
+                      type="dashed"
+                      onClick={() => add()}
+                      block
+                      icon={<PlusOutlined />}
+                    >
+                      د پرزې زیاتول
+                    </Button>
+                  </Form.Item>
+                </>
+              )}
+            </Form.List>
+
             <Form.Item
+              name="supplier"
               label="عرضه کوونکی"
-              name="supplierId"
-              rules={[{ required: true, message: 'عرضه کوونکی انتخاب کړئ' }]}
+              rules={[{ required: true, message: 'لطفاً د عرضه کوونکي نوم ولیکئ' }]}
             >
-             <Input/>
+              <Input placeholder="د عرضه کوونکي نوم ولیکئ" />
             </Form.Item>
 
             <Form.Item
-              label="پرزه"
-              name="sparePartId"
-              rules={[{ required: true, message: 'پرزه انتخاب کړئ' }]}
-            >
-              <Input/>
-            </Form.Item>
-
-            <Form.Item
-              label="شرکت"
               name="companyName"
-              rules={[{ required: true, message: 'شرکت نوم ولیکئ' }]}
+              label="د شرکت نوم"
+              rules={[{ required: true, message: 'لطفاً د شرکت نوم ولیکئ' }]}
             >
-              <Input />
+              <Input placeholder="د شرکت نوم" />
             </Form.Item>
 
             <Form.Item
-              label="مقدار"
-              name="quantity"
-              rules={[{ required: true, message: 'مقدار ولیکئ' }]}
-            >
-              <InputNumber min={1} style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              label="قیمت"
-              name="price"
-              rules={[{ required: true, message: 'قیمت ولیکئ' }]}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              label="نیټه"
               name="purchaseDate"
-              rules={[{ required: true, message: 'نیټه انتخاب کړئ' }]}
+              label="نیټه"
+              rules={[{ required: true, message: 'لطفاً نیټه وټاکئ' }]}
             >
-              <DatePicker style={{ width: '100%' }} />
+              <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
             </Form.Item>
 
-            <Form.Item label="توضیحات" name="description">
-              <Input.TextArea rows={3} />
+            <Form.Item name="description" label="تفصیل">
+              <Input.TextArea rows={3} placeholder="اضافي تفصیل (اختیاري)" />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" block>
-                ثبت
+              <Button type="primary" htmlType="submit" loading={loading}>
+                {editingPurchase ? 'تغیرول' : 'ثبتول'}
+              </Button>
+              <Button onClick={handleCancel} style={{ marginRight: 8 }}>
+                ردول
               </Button>
             </Form.Item>
           </Form>

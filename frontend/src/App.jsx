@@ -9,15 +9,15 @@ import PurchaseRegister from './components/Pages/Purchase';
 const App = () => {
   return (
     <BrowserRouter>
-            <Routes>
-                <Route element={<SpareParts/>} path='/'/>
-               <Route element={<SaleRegisterModal />} path='/sale'/>
-               <Route element={<PurchaseRegister />} path='/purchase'/>
-               
-            
-                
-            </Routes>
-        </BrowserRouter>
+      <Routes>
+        <Route element={<SpareParts />} path='/' />
+        <Route element={<SaleRegisterModal />} path='/sale' />
+        <Route element={<PurchaseRegister />} path='/purchase' />
+
+
+
+      </Routes>
+    </BrowserRouter>
   )
 }
 
