@@ -13,6 +13,7 @@ import {
     ToolOutlined,
     CarOutlined,
     MoneyCollectFilled,
+    PlusOutlined,
 } from '@ant-design/icons';
 import { Link, useLocation } from 'react-router-dom';
 import { Button, Layout, Menu, theme } from 'antd';
@@ -39,9 +40,9 @@ const Adminlayout = ({ children }) => {
             label: <Link to='/sale'>پرزو خرڅول مدیریت</Link>,
         },
         {
-            key: '/report',
-            icon: <FileTextOutlined />,
-            label: <Link to='/report'>Report</Link>,
+            key: '/پرزو اخستنه',
+            icon: <PlusOutlined />,
+            label: <Link to='/purchase'> پرزواخستنه</Link>,
         },
         {
             key: '/borrow',
