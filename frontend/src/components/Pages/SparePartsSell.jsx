@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Select, Table, message, Typography, Row, Col, Statistic, Modal, Spin } from 'antd';
-import { ShoppingCartOutlined, BarcodeOutlined, PlusOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Select, Table, message, Typography, Row, Col, Statistic, Modal, Spin, Popconfirm } from 'antd';
+import { ShoppingCartOutlined, BarcodeOutlined, PlusOutlined, LoadingOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import Adminlayout from '../layout/Sidebar';
 import dayjs from 'dayjs';
@@ -135,16 +135,53 @@ const SparePartsSell = () => {
         }
     };
 
+    const handleDelete = async (saleId) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/sales/${saleId}`);
+            
+            // Update local state
+            setSales(sales.filter(sale => !sale.key.startsWith(saleId)));
+            
+            // Refresh summary and spare parts
+            await fetchSalesSummary();
+            await fetchSpareParts();
+            
+            message.success('پلورنه په بریالیتوب سره ړنګه سول!');
+        } catch (error) {
+            console.error('Error deleting sale:', error);
+            message.error('د پلورنې ړنګولو کې ستونزه راغله');
+        }
+    };
+
     const columns = [
+         {
+            title: 'عمل',
+            key: 'action',
+            render: (_, record) => {
+                // Extract the sale ID from the key (format: saleId-itemId)
+                const saleId = record.key.split('-')[0];
+                return (
+                    <Popconfirm
+                        title="ایا تاسو ډاډه یاست چې غواړئ دا پلورنه ړنګه کړئ؟"
+                        onConfirm={() => handleDelete(saleId)}
+                        okText="هو"
+                        cancelText="نه"
+                    >
+                        <Button 
+                            type="link" 
+                            danger 
+                            icon={<DeleteOutlined />}
+                        />
+                    </Popconfirm>
+                );
+            },
+        },
         {
             title: 'نیټه',
             dataIndex: 'date',
             key: 'date',
         },
-      
-       
-       
-            {
+        {
             title: 'مجموعه',
             dataIndex: 'total',
             key: 'total',
@@ -161,22 +198,22 @@ const SparePartsSell = () => {
             key: 'price',
             render: (price) => `${price.toLocaleString()} AFN`,
         },
-         {
+        {
             title: 'برانډ',
             dataIndex: 'brand',
             key: 'brand',
         },
-    
-         {
+        {
             title: 'د پرزې نوم',
             dataIndex: 'part',
             key: 'part',
         },
-          {
+        {
             title: 'مشتري نوم',
             dataIndex: 'customerName',
             key: 'customerName',
         },
+       
     ];
 
     if (fetching) {

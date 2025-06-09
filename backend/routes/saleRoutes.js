@@ -11,7 +11,10 @@ router.get('/summary', saleController.getSalesSummary);
 // Get all sales with pagination
 router.get('/', saleController.getSales);
 
-// Get sale by ID - This should be the last route to avoid conflicts
+// Get sale by ID
 router.get('/:id', saleController.getSaleById);
+
+// Delete a sale
+router.delete('/:id', saleController.deleteSale);
 
 module.exports = router;

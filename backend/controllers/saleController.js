@@ -204,3 +204,39 @@ exports.getSalesSummary = async (req, res) => {
     });
   }
 };
+
+// Delete a sale and restore stock
+exports.deleteSale = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find the sale first to get the items
+        const sale = await Sale.findById(id);
+        if (!sale) {
+            return res.status(404).json({ message: 'Sale not found' });
+        }
+
+        // Restore the stock quantities
+        const bulkOps = sale.items.map(item => ({
+            updateOne: {
+                filter: { _id: item.sparePart },
+                update: { $inc: { quantity: item.quantity } }
+            }
+        }));
+
+        if (bulkOps.length > 0) {
+            await SparePart.bulkWrite(bulkOps);
+        }
+
+        // Delete the sale
+        await Sale.findByIdAndDelete(id);
+        
+        res.json({ message: 'Sale deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting sale:', error);
+        res.status(500).json({ 
+            message: 'Error deleting sale', 
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
