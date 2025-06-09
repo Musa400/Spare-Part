@@ -15,7 +15,6 @@ exports.createSale = async (req, res) => {
     // Calculate total amount and validate stock
     let totalAmount = 0;
     const itemsToSell = [];
-    const updates = [];
     
     // Get all spare parts at once for better performance
     const sparePartIds = items.map(item => item.sparePart);
@@ -58,19 +57,6 @@ exports.createSale = async (req, res) => {
       });
       
       totalAmount += sparePart.price * quantity;
-      
-      // Prepare update operation
-      updates.push({
-        updateOne: {
-          filter: { _id: sparePart._id },
-          update: { $inc: { quantity: -quantity } }
-        }
-      });
-    }
-    
-    // Update all spare parts in bulk
-    if (updates.length > 0) {
-      await SparePart.bulkWrite(updates);
     }
     
     // Create sale
@@ -81,7 +67,7 @@ exports.createSale = async (req, res) => {
       date: new Date()
     });
     
-    // Save sale
+    // Save sale - this will trigger the post-save hook to update quantities
     await sale.save();
     
     // Populate the sale data for response
