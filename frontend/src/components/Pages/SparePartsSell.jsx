@@ -48,13 +48,14 @@ const SparePartsSell = () => {
             const response = await axios.get('http://localhost:5000/api/sales');
             const formattedSales = response.data.sales.flatMap(sale => 
                 sale.items.map(item => ({
-                    key: item._id,
+                    key: `${sale._id}-${item._id}`,
                     part: item.sparePart.name,
                     brand: item.sparePart.brand,
                     quantity: item.quantity,
                     price: item.price,
                     total: item.price * item.quantity,
-                    date: dayjs(sale.createdAt).format('YYYY/MM/DD HH:mm')
+                    date: dayjs(sale.date || sale.createdAt).format('YYYY/MM/DD HH:mm'),
+                    customerName: sale.customerName
                 }))
             );
             setSales(formattedSales);
@@ -106,17 +107,18 @@ const SparePartsSell = () => {
 
             // Update local state
             const newSale = response.data.sale;
-            const formattedSale = {
-                key: newSale._id,
-                part: part.name,
-                brand: part.brand,
-                quantity: parseInt(values.quantity, 10),
-                price: part.price,
-                total: part.price * values.quantity,
-                date: dayjs().format('YYYY/MM/DD HH:mm')
-            };
+            const formattedSales = newSale.items.map(item => ({
+                key: `${newSale._id}-${item._id}`,
+                part: item.sparePart.name,
+                brand: item.sparePart.brand,
+                quantity: item.quantity,
+                price: item.price,
+                total: item.price * item.quantity,
+                date: dayjs(newSale.date || new Date()).format('YYYY/MM/DD HH:mm'),
+                customerName: newSale.customerName
+            }));
 
-            setSales([formattedSale, ...sales]);
+            setSales([...formattedSales, ...sales]);
             
             // Update summary
             fetchSalesSummary();
@@ -139,7 +141,10 @@ const SparePartsSell = () => {
             dataIndex: 'date',
             key: 'date',
         },
-        {
+      
+       
+       
+            {
             title: 'مجموعه',
             dataIndex: 'total',
             key: 'total',
@@ -156,15 +161,21 @@ const SparePartsSell = () => {
             key: 'price',
             render: (price) => `${price.toLocaleString()} AFN`,
         },
-        {
+         {
             title: 'برانډ',
             dataIndex: 'brand',
             key: 'brand',
         },
-        {
+    
+         {
             title: 'د پرزې نوم',
             dataIndex: 'part',
             key: 'part',
+        },
+          {
+            title: 'مشتري نوم',
+            dataIndex: 'customerName',
+            key: 'customerName',
         },
     ];
 
