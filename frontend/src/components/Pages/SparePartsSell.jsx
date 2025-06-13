@@ -33,7 +33,7 @@ const SparePartsSell = () => {
 
     const fetchSpareParts = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/spareparts');
+            const response = await axios.get(' /spareparts');
             setSpareParts(response.data);
         } catch (error) {
             console.error('Error fetching spare parts:', error);
