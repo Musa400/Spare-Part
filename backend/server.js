@@ -15,13 +15,12 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Connect to MongoDB (replace <YOUR_MONGO_URI> with your MongoDB URI)
-mongoose.connect(process.env.MongoUrl, {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('MongoDB connected'))
-.catch((err) => console.error('MongoDB connection error:', err));
+.then(() => console.log("✅ MongoDB connected"))
+.catch((err) => console.log("❌ MongoDB connection error:", err));
 
 // Routes
 app.use('/api/spareparts', sparePartsRoutes);
