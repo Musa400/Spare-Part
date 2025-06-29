@@ -14,6 +14,8 @@ import {
 import Adminlayout from '../layout/Sidebar';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const columnsBase = (onEdit, onDelete) => [
     { title: 'د پرزې نوم', dataIndex: 'name', key: 'name' },
     { title: 'د موټر ډول', dataIndex: 'carModel', key: 'carModel' },
@@ -53,19 +55,15 @@ function SpareParts() {
     const [editingPart, setEditingPart] = useState(null);
     const [messageApi, contextHolder] = message.useMessage();
 
-    // Fetch spare parts from backend API
     const fetchSpareParts = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/spareparts');
+            const res = await fetch(`${API_BASE_URL}/spareparts`);
             if (!res.ok) throw new Error('Failed to fetch spare parts');
             const data = await res.json();
-            // Map _id to key for antd Table
             const mappedData = data.map((item) => ({ ...item, key: item._id }));
             setSpareParts(mappedData);
-
-            // Find low stock parts (quantity <= 3)
             const lowStock = mappedData.filter((part) => part.quantity <= 3);
-           console.log(data)
+            console.log(data);
             setLowStockParts(lowStock);
         } catch (error) {
             messageApi.error('د موټر پرزو د راوړلو پر مهال ستونزه پېښه شوه');
@@ -84,12 +82,10 @@ function SpareParts() {
 
     const handleCancel = () => setIsModalOpen(false);
 
-    // Handle form submit (add or update)
     const onFinish = async (values) => {
         try {
             if (editingPart) {
-                // Update spare part
-                const res = await fetch(`http://localhost:5000/api/spareparts/${editingPart._id}`, {
+                const res = await fetch(`${API_BASE_URL}/spareparts/${editingPart._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(values),
@@ -97,13 +93,11 @@ function SpareParts() {
                 if (!res.ok) throw new Error('Update failed');
                 messageApi.success('پرزه په بریالیتوب سره سمول شوه');
             } else {
-                // Check if part exists by name + carModel
                 const existingPart = spareParts.find(
                     (part) => part.name === values.name && part.carModel === values.carModel
                 );
 
                 if (existingPart) {
-                    // Update existing part's quantity and price
                     const updatedPart = {
                         ...existingPart,
                         quantity: existingPart.quantity + values.quantity,
@@ -112,7 +106,7 @@ function SpareParts() {
                         description: values.description,
                     };
 
-                    const res = await fetch(`http://localhost:5000/api/spareparts/${existingPart._id}`, {
+                    const res = await fetch(`${API_BASE_URL}/spareparts/${existingPart._id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updatedPart),
@@ -121,8 +115,7 @@ function SpareParts() {
                     if (!res.ok) throw new Error('Update failed');
                     messageApi.success('موجوده پرزه په بریالیتوب سره تازه شوه');
                 } else {
-                    // Add new spare part
-                    const res = await fetch('http://localhost:5000/api/spareparts', {
+                    const res = await fetch(`${API_BASE_URL}/spareparts`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(values),
@@ -148,7 +141,7 @@ function SpareParts() {
 
     const onDelete = async (key) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/spareparts/${key}`, {
+            const res = await fetch(`${API_BASE_URL}/spareparts/${key}`, {
                 method: 'DELETE',
             });
             if (!res.ok) throw new Error('Delete failed');
@@ -163,7 +156,6 @@ function SpareParts() {
         <Adminlayout>
             {contextHolder}
             <div dir="rtl" style={{ maxWidth: 960, margin: 20, padding: 24, backgroundColor: '#fff' }}>
-                {/* Low stock alert */}
                 {lowStockParts.length > 0 && (
                     <Alert
                         message={`توجه: ${lowStockParts.length} پرزې د مقدار له ۳ څخه کم یا مساوي دي!`}
@@ -241,14 +233,10 @@ function SpareParts() {
                             {editingPart ?
                             <Button type="primary" danger htmlType="submit" block>
                                    سمول
-                
                             </Button>
                             :
                             <Button type="primary" htmlType="submit" block>
-                                اضافه
-                                کول
-                                   
-                
+                                اضافه کول
                             </Button>
                             }
                         </Form.Item>
